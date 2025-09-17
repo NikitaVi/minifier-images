@@ -137,13 +137,16 @@ func pathGenerator(pathName string) string {
 }
 
 func EmbedInit() error {
-	sys := "windows"
+	sys := runtime.GOOS
 	algorithms, _ := embeddedBinaries.ReadDir("bin/" + sys)
 
 	for _, a := range algorithms {
 		tmpPath := filepath.Join(os.TempDir(), a.Name())
 
-		data, err := embeddedBinaries.ReadFile(a.Name())
+		data, err := embeddedBinaries.ReadFile("bin/" + sys + "/" + a.Name())
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
 
 		if err = os.WriteFile(tmpPath, data, 0755); err != nil {
 			return err
