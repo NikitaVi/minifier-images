@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 )
 
@@ -125,22 +126,24 @@ func pathGenerator(pathName string) string {
 	ext := ""
 
 	tempDir := os.TempDir()
+	pathName = "/" + pathName
 
 	if runtime.GOOS == "windows" {
+		pathName = strings.Replace(pathName, "/", "\\", -1)
 		ext = ".exe"
 	}
 
-	return fmt.Sprintf("%s\\%s%s", tempDir, pathName, ext)
+	return fmt.Sprintf("%s%s%s", tempDir, pathName, ext)
 }
 
 func EmbedInit() error {
-	sys := runtime.GOOS
+	sys := "windows"
 	algorithms, _ := embeddedBinaries.ReadDir("bin/" + sys)
 
 	for _, a := range algorithms {
 		tmpPath := filepath.Join(os.TempDir(), a.Name())
 
-		data, err := embeddedBinaries.ReadFile(filepath.Join("bin/"+sys, a.Name()))
+		data, err := embeddedBinaries.ReadFile(a.Name())
 
 		if err = os.WriteFile(tmpPath, data, 0755); err != nil {
 			return err
