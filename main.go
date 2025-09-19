@@ -4,32 +4,29 @@ import (
 	"embed"
 	_ "embed"
 	"fmt"
-	"github.com/NikitaVi/image_minifier/internal/format_detector"
+	"github.com/NikitaVi/image_minifier/internal/file_init"
+	"github.com/NikitaVi/image_minifier/internal/minifiers"
+	"github.com/NikitaVi/image_minifier/internal/utils"
 	"github.com/gen2brain/beeep"
-	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
 	"sync"
 )
 
 //go:embed bin/*
 var embeddedBinaries embed.FS
 
-//go:embed ok.png
+//go:embed resources/ok.png
 var icon []byte
 
 func main() {
 
-	err := EmbedInit()
+	err := file_init.EmbedInit(embeddedBinaries)
 	if err != nil {
 		panic(err)
 	}
 
 	var wg sync.WaitGroup
 
-	// Список поддерживаемых форматов
 	patterns := []string{"*.jpg", "*.jpeg", "*.png", "*.webp"}
 	var files []string
 
@@ -44,7 +41,7 @@ func main() {
 		go func(img string) {
 			defer wg.Done()
 
-			format, err := format_detector.FormatDetector(img)
+			format, err := utils.FormatDetector(img)
 			if err != nil {
 				fmt.Println("Error:", err)
 				return
@@ -53,11 +50,11 @@ func main() {
 
 			switch format {
 			case "jpeg":
-				MinifierJPG(img)
+				minifiers.MinifierJPG(img)
 			case "png":
-				MinifierPNG(img)
+				minifiers.MinifierPNG(img)
 			case "webp":
-				MinifierWEBP(img)
+				minifiers.MinifierWEBP(img)
 			default:
 				fmt.Println("Unsupported format:", format)
 			}
@@ -67,91 +64,7 @@ func main() {
 	wg.Wait()
 
 	err = beeep.Notify("Успешно!", "Все файлы были сжаты!", icon)
-	err = beeep.Beep(beeep.DefaultFreq, beeep.DefaultDuration)
 	if err != nil {
 		panic(err)
 	}
-}
-
-func MinifierPNG(imageName string) {
-	alg := pathGenerator("pngquant")
-
-	cmd := exec.Command(alg, "--quality=80-90", "--output", imageName, "--force", imageName)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	fmt.Printf("png: %s \n", imageName)
-
-	if err := cmd.Run(); err != nil {
-		if _, ok := err.(*exec.ExitError); ok {
-			println("Невозможно сжать")
-		}
-		fmt.Println(err.Error())
-	}
-}
-
-func MinifierJPG(imageName string) {
-	alg := pathGenerator("jpegoptim")
-
-	cmd := exec.Command(alg, "--max=90", imageName)
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		println(err.Error())
-	}
-}
-
-func MinifierWEBP(imageName string) {
-	metaDataMin := pathGenerator("webpmux")
-	recodeMin := pathGenerator("cwebp")
-	fmt.Println(metaDataMin)
-
-	if err := exec.Command(metaDataMin, "-strip", "icc", imageName, "-o", imageName).Run(); err != nil {
-		println(err.Error())
-	}
-
-	if err := exec.Command(metaDataMin, "-strip", "exif", imageName, "-o", imageName).Run(); err != nil {
-		println(err.Error())
-	}
-
-	if err := exec.Command(metaDataMin, "-strip", "xmp", imageName, "-o", imageName).Run(); err != nil {
-		println(err.Error())
-	}
-
-	if err := exec.Command(recodeMin, "-q", "75", "-m", "6", imageName, "-o", imageName).Run(); err != nil {
-		println("Невозможно сжать")
-	}
-}
-
-func pathGenerator(pathName string) string {
-	ext := ""
-
-	tempDir := os.TempDir()
-	pathName = "/" + pathName
-
-	if runtime.GOOS == "windows" {
-		pathName = strings.Replace(pathName, "/", "\\", -1)
-		ext = ".exe"
-	}
-
-	return fmt.Sprintf("%s%s%s", tempDir, pathName, ext)
-}
-
-func EmbedInit() error {
-	sys := runtime.GOOS
-	algorithms, _ := embeddedBinaries.ReadDir("bin/" + sys)
-
-	for _, a := range algorithms {
-		tmpPath := filepath.Join(os.TempDir(), a.Name())
-
-		data, err := embeddedBinaries.ReadFile("bin/" + sys + "/" + a.Name())
-		if err != nil {
-			fmt.Println("Error:", err)
-		}
-
-		if err = os.WriteFile(tmpPath, data, 0755); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

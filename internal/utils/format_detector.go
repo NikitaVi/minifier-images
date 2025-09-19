@@ -1,4 +1,4 @@
-package format_detector
+package utils
 
 import (
 	_ "golang.org/x/image/webp"
