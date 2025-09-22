@@ -1,26 +1,21 @@
 package main
 
 import (
-	"embed"
 	_ "embed"
-	"fmt"
-	"github.com/NikitaVi/image_minifier/internal/file_init"
-	"github.com/NikitaVi/image_minifier/internal/minifiers"
-	"github.com/NikitaVi/image_minifier/internal/utils"
+	minifier "github.com/NikitaVi/minifier_core/pkg"
 	"github.com/gen2brain/beeep"
 	"path/filepath"
 	"sync"
 )
-
-//go:embed bin/*
-var embeddedBinaries embed.FS
 
 //go:embed resources/ok.png
 var icon []byte
 
 func main() {
 
-	err := file_init.EmbedInit(embeddedBinaries)
+	err := minifier.EmbedInit()
+
+	//err := file_init.EmbedInit(embeddedBinaries)
 	if err != nil {
 		panic(err)
 	}
@@ -41,23 +36,7 @@ func main() {
 		go func(img string) {
 			defer wg.Done()
 
-			format, err := utils.FormatDetector(img)
-			if err != nil {
-				fmt.Println("Error:", err)
-				return
-			}
-			fmt.Println(format, img)
-
-			switch format {
-			case "jpeg":
-				minifiers.MinifierJPG(img)
-			case "png":
-				minifiers.MinifierPNG(img)
-			case "webp":
-				minifiers.MinifierWEBP(img)
-			default:
-				fmt.Println("Unsupported format:", format)
-			}
+			minifier.Minifier(img)
 		}(img)
 	}
 

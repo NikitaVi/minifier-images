@@ -6,6 +6,7 @@ toolchain go1.24.3
 
 require (
 	git.sr.ht/~jackmordaunt/go-toast v1.1.2 // indirect
+	github.com/NikitaVi/minifier_core v0.0.0-20250922081410-7870fe8fc2a3 // indirect
 	github.com/esiqveland/notify v0.13.3 // indirect
 	github.com/gen2brain/beeep v0.11.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
